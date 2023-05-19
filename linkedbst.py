@@ -6,6 +6,9 @@ from math import log
 from abstractcollection import AbstractCollection
 from bstnode import BSTNode
 from linkedstack import LinkedStack
+import time
+import random
+import string
 # from linkedqueue import LinkedQueue
 
 
@@ -79,18 +82,30 @@ class LinkedBST(AbstractCollection):
     def find(self, item):
         """If item matches an item in self, returns the
         matched item, or None otherwise."""
-
-        def recurse(node):
-            if node is None:
+        while True:
+            if self.isEmpty():
                 return None
-            elif item == node.data:
-                return node.data
-            elif item < node.data:
-                return recurse(node.left)
             else:
-                return recurse(node.right)
+                current = self._root
+                while current is not None:
+                    if item == current.data:
+                        return current.data
+                    elif item < current.data:
+                        current = current.left
+                    else:
+                        current = current.right
+                return None
+        # def recurse(node):
+        #     if node is None:
+        #         return None
+        #     elif item == node.data:
+        #         return node.data
+        #     elif item < node.data:
+        #         return recurse(node.left)
+        #     else:
+        #         return recurse(node.right)
 
-        return recurse(self._root)
+        # return recurse(self._root)
 
     # Mutator methods
     def clear(self):
@@ -100,30 +115,48 @@ class LinkedBST(AbstractCollection):
 
     def add(self, item):
         """Adds item to the tree."""
-
-        # Helper function to search for item's position
-        def recurse(node):
-            # New item is less, go left until spot is found
-            if item < node.data:
-                if node.left is None:
-                    node.left = BSTNode(item)
-                else:
-                    recurse(node.left)
-            # New item is greater or equal,
-            # go right until spot is found
-            elif node.right is None:
-                node.right = BSTNode(item)
+        while True:
+            if self.isEmpty():
+                self._root = BSTNode(item)
+                break
             else:
-                recurse(node.right)
-                # End of recurse
+                parent = None
+                current = self._root
+                while current is not None:
+                    parent = current
+                    if item < current.data:
+                        current = current.left
+                    else:
+                        current = current.right
+                if item < parent.data:
+                    parent.left = BSTNode(item)
+                    break
+                else:
+                    parent.right = BSTNode(item)
+                    break
+        # # Helper function to search for item's position
+        # def recurse(node):
+        #     # New item is less, go left until spot is found
+        #     if item < node.data:
+        #         if node.left is None:
+        #             node.left = BSTNode(item)
+        #         else:
+        #             recurse(node.left)
+        #     # New item is greater or equal,
+        #     # go right until spot is found
+        #     elif node.right is None:
+        #         node.right = BSTNode(item)
+        #     else:
+        #         recurse(node.right)
+        #         # End of recurse
 
-        # Tree is empty, so new item goes at the root
-        if self.isEmpty():
-            self._root = BSTNode(item)
-        # Otherwise, search for the item's spot
-        else:
-            recurse(self._root)
-        self._size += 1
+        # # Tree is empty, so new item goes at the root
+        # if self.isEmpty():
+        #     self._root = BSTNode(item)
+        # # Otherwise, search for the item's spot
+        # else:
+        #     recurse(self._root)
+        # self._size += 1
 
     def remove(self, item):
         """Precondition: item is in self.
@@ -233,47 +266,15 @@ class LinkedBST(AbstractCollection):
         Return the height of the tree
         :return: int
         '''
-        return max(self.depth(node) for node in self.positions() if self.is_leaf(node))
+        def height1(top):
+            """Return the height of a subtree."""
+            if top is None:
+                return 0
+            else:
+                return 1 + max(height1(top.left), height1(top.right))
+        return max(height1(self._root)-1, 0)
 
-    def depth(self, p):
-        '''
-        Return the depth of the node p
-        :param p:
-        :return:
-        '''
-        if self.is_root(p):
-            return 0
-        else:
-            return 1 + self.depth(self.parent(p))
-    def is_root(self, p):
-        '''
-        Return True if node p is the root of the tree
-        :param p:
-        :return:
-        '''
-        return p == self._root
     
-    def parent(self, p):
-        '''
-        Return the parent of node p
-        :param p:
-        :return:
-        '''
-        return p.parent
-    
-    def is_leaf(self, p):
-        '''
-        Return True if node p is a leaf
-        :param p:
-        :return:
-        '''
-        return p.left is None and p.right is None
-    def positions(self):
-        '''
-        Generate an iteration of all positions of the tree
-        :return:
-        '''
-        return self.inorder()
     def is_balanced(self):
         '''
         Return True if tree is balanced
@@ -281,7 +282,7 @@ class LinkedBST(AbstractCollection):
         '''
         return True if self.height() < 2 * log(self._size + 1, 2) - 1 else False
 
-    def rangeFind(self, low, high):
+    def range_find(self, low, high):
         '''
         Returns a list of the items in the tree, where low <= item <= high."""
         :param low:
@@ -290,14 +291,32 @@ class LinkedBST(AbstractCollection):
         '''
         if low > high:
             raise ValueError('low must be less than or equal to high')
-        return [item for item in self if low <= item <= high]
+        result = self.inorder()
+        return [i for i in result if low <= i <= high]
+
 
     def rebalance(self):
-        '''
+        """
         Rebalances the tree.
-        :return:
-        '''
-        pass 
+        """
+        # Copy elements of the tree into a sorted list
+        sorted_list = list(self.inorder())
+        # Clear the tree
+        self.clear()
+
+        # Helper function to build a balanced tree from a sorted list
+        def build_balanced_tree(lst, start, end):
+            if start > end:
+                return None
+            mid = (start + end) // 2
+            node = BSTNode(lst[mid])
+            node.left = build_balanced_tree(lst, start, mid - 1)
+            node.right = build_balanced_tree(lst, mid + 1, end)
+            return node
+
+        # Build a balanced tree from the sorted list
+        self._root = build_balanced_tree(sorted_list, 0, len(sorted_list) - 1)
+
 
     def successor(self, item):
         """
@@ -336,7 +355,64 @@ class LinkedBST(AbstractCollection):
         :return:
         :rtype:
         """
-        pass
+        # Load the dictionary from the file
+        with open(path, 'r') as file:
+            dictionary = [word.strip() for word in file.readlines()]
+
+        # Sort the dictionary for binary search
+        sorted_dictionary = sorted(dictionary)
+
+        # Build a binary search tree with the sorted dictionary
+        sorted_bst = LinkedBST()
+        for word in sorted_dictionary:
+            sorted_bst.add(word)
+
+        # Build a binary search tree with the unsorted dictionary
+        unsorted_bst = LinkedBST()
+        for word in dictionary:
+            unsorted_bst.add(word)
+
+        # Perform searches and measure the time taken
+        random_words = random.sample(dictionary, 10000)
+
+        # Search in a sorted dictionary (using list methods)
+        start_time = time.time()
+        for word in random_words:
+            if word in sorted_dictionary:
+                pass  # Do something
+        end_time = time.time()
+        sorted_search_time = end_time - start_time
+
+        # Search in a sorted binary search tree
+        start_time = time.time()
+        for word in random_words:
+            sorted_bst.find(word)
+        end_time = time.time()
+        sorted_bst_search_time = end_time - start_time
+
+        # Search in an unsorted binary search tree
+        start_time = time.time()
+        for word in random_words:
+            unsorted_bst.find(word)
+        end_time = time.time()
+        unsorted_bst_search_time = end_time - start_time
+
+        # Rebalance the binary search tree
+        unsorted_bst.rebalance()
+
+        # Search in a balanced binary search tree
+        start_time = time.time()
+        for word in random_words:
+            unsorted_bst.find(word)
+        end_time = time.time()
+        balanced_bst_search_time = end_time - start_time
+
+        # Display the search times
+        print("Time to search 10000 random words in a dictionary (sorted list): {:.6f} seconds".format(sorted_search_time))
+        print("Time to search 10000 random words in a dictionary (sorted BST): {:.6f} seconds".format(sorted_bst_search_time))
+        print("Time to search 10000 random words in a dictionary (unsorted BST): {:.6f} seconds".format(unsorted_bst_search_time))
+        print("Time to search 10000 random words in a dictionary (balanced BST): {:.6f} seconds".format(balanced_bst_search_time))
+        
 
 tree = LinkedBST()
 tree.add(5)
@@ -352,3 +428,7 @@ print(tree.is_balanced())
 print(tree.rangeFind(3, 7))
 print(tree.successor(3))
 print(tree.predecessor(3))
+tree.rebalance()
+print(tree)
+
+tree.demo_bst('words.txt')
